@@ -1,0 +1,280 @@
+# Documentation des Endpoints de l'API
+
+## 1. Authentification
+
+### 1.1. Obtenir un token JWT
+- **URL**: `/api/token/`
+- **Méthode**: `POST`
+- **Authentification requise**: Non
+- **Entrée**: 
+  ```json
+  {
+    "username": "votre_username",
+    "password": "votre_mot_de_passe"
+  }
+  ```
+- **Sortie en cas de succès (200 OK)**:
+  ```json
+  {
+    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Sortie en cas d'erreur (400 Bad Request)**:
+  ```json
+  {
+    "non_field_errors": [
+      "Impossible de se connecter avec les identifiants fournis."
+    ]
+  }
+  ```
+
+### 1.2. Rafraîchir un token
+- **URL**: `/api/token/refresh/`
+- **Méthode**: `POST`
+- **Entrée**:
+  ```json
+  {
+    "refresh": "votre_token_rafraichissement"
+  }
+  ```
+- **Sortie**:
+  ```json
+  {
+    "access": "nouveau_token_acces"
+  }
+  ```
+
+## 2. Utilisateurs
+
+### 2.1. Créer un utilisateur
+- **URL**: `/api/auth/users/`
+- **Méthode**: `POST`
+- **Entrée**:
+  ```json
+  {
+    "username": "nouvel_utilisateur",
+    "email": "email@example.com",
+    "password": "motdepasse123",
+    "profile_picture_url": "http://exemple.com/photo.jpg"
+  }
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": 1,
+    "email": "email@example.com",
+    "username": "nouvel_utilisateur",
+    "profile_picture_url": "http://exemple.com/photo.jpg"
+  }
+  ```
+
+## 3. Publications (Posts)
+
+### 3.1. Lister les publications
+- **URL**: `/api/posts/`
+- **Méthode**: `GET`
+- **Authentification requise**: Oui
+- **Paramètres de requête**:
+  - `page` (optionnel): Numéro de page
+  - `page_size` (optionnel): Nombre d'éléments par page
+- **Sortie**:
+  ```json
+  {
+    "count": 42,
+    "next": "http://api.example.com/posts/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "author": {
+          "id": 1,
+          "username": "utilisateur1",
+          "profile_picture_url": "http://exemple.com/photo1.jpg"
+        },
+        "content": "Contenu du post",
+        "media": [{"type": "IMAGE", "url": "http://exemple.com/image.jpg"}],
+        "likes_count": 5,
+        "comments_count": 2,
+        "created_at": "2026-01-21T14:30:00Z"
+      }
+    ]
+  }
+  ```
+
+### 3.2. Créer une publication
+- **URL**: `/api/posts/`
+- **Méthode**: `POST`
+- **Authentification requise**: Oui
+- **Entrée**:
+  ```json
+  {
+    "content": "Nouveau contenu de publication",
+    "media": [{"type": "IMAGE", "url": "http://exemple.com/nouvelle-image.jpg"}]
+  }
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "author": {
+      "id": 1,
+      "username": "utilisateur1",
+      "profile_picture_url": "http://exemple.com/photo1.jpg"
+    },
+    "content": "Nouveau contenu de publication",
+    "media": [{"type": "IMAGE", "url": "http://exemple.com/nouvelle-image.jpg"}],
+    "likes_count": 0,
+    "comments_count": 0,
+    "created_at": "2026-01-21T15:30:00Z"
+  }
+  ```
+
+## 4. Pages
+
+### 4.1. Créer une page
+- **URL**: `/api/pages/`
+- **Méthode**: `POST`
+- **Authentification requise**: Oui
+- **Entrée**:
+  ```json
+  {
+    "name": "Ma Page de Transport",
+    "description": "Service de transport de marchandises",
+    "category": "Transport routier",
+    "profile_picture_url": "http://exemple.com/page-logo.jpg",
+    "cover_photo_url": "http://exemple.com/page-cover.jpg"
+  }
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440002",
+    "name": "Ma Page de Transport",
+    "description": "Service de transport de marchandises",
+    "category": "Transport routier",
+    "owner": 1,
+    "subscribers_count": 0,
+    "profile_picture_url": "http://exemple.com/page-logo.jpg",
+    "cover_photo_url": "http://exemple.com/page-cover.jpg",
+    "created_at": "2026-01-21T15:35:00Z"
+  }
+  ```
+
+## 5. Boosts
+
+### 5.1. Créer un boost
+- **URL**: `/api/boosts/`
+- **Méthode**: `POST`
+- **Authentification requise**: Oui
+- **Entrée**:
+  ```json
+  {
+    "target_type": "POST",
+    "target_id": "550e8400-e29b-41d4-a716-446655440000",
+    "budget": 100.00,
+    "start_date": "2026-01-22T00:00:00Z",
+    "end_date": "2026-01-29T23:59:59Z"
+  }
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": "770e8400-e29b-41d4-a716-446655440003",
+    "user": 1,
+    "target_type": "POST",
+    "target_id": "550e8400-e29b-41d4-a716-446655440000",
+    "budget": "100.00",
+    "status": "PAUSED",
+    "start_date": "2026-01-22T00:00:00Z",
+    "end_date": "2026-01-29T23:59:59Z",
+    "ranking_weight": 0
+  }
+  ```
+
+## 6. Commentaires
+
+### 6.1. Créer un commentaire
+- **URL**: `/api/comments/`
+- **Méthode**: `POST`
+- **Authentification requise**: Oui
+- **Entrée**:
+  ```json
+  {
+    "post": "550e8400-e29b-41d4-a716-446655440000",
+    "content": "Ceci est un commentaire",
+    "parent_comment": null
+  }
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440004",
+    "user": {
+      "id": 1,
+      "username": "utilisateur1",
+      "profile_picture_url": "http://exemple.com/photo1.jpg"
+    },
+    "post": "550e8400-e29b-41d4-a716-446655440000",
+    "content": "Ceci est un commentaire",
+    "parent_comment": null,
+    "created_at": "2026-01-21T16:00:00Z"
+  }
+  ```
+
+## 7. Téléchargement de médias
+
+### 7.1. Uploader un média
+- **URL**: `/api/upload/`
+- **Méthode**: `POST`
+- **Authentification requise**: Oui
+- **Format**: `multipart/form-data`
+- **Champs**:
+  - `file`: Fichier à uploader (obligatoire)
+  - `type`: Type de média (`IMAGE` ou `VIDEO`, obligatoire)
+- **Entrée**:
+  ```
+  POST /api/upload/
+  Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+  ------WebKitFormBoundary7MA4YWxkTrZu0gW
+  Content-Disposition: form-data; name="file"; filename="image.jpg"
+  Content-Type: image/jpeg
+
+  (binary data)
+  ------WebKitFormBoundary7MA4YWxkTrZu0gW
+  Content-Disposition: form-data; name="type"
+
+  IMAGE
+  ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+  ```
+- **Sortie en cas de succès (201 Created)**:
+  ```json
+  {
+    "id": 1,
+    "file": "http://example.com/media/uploads/2026/01/21/image.jpg",
+    "file_type": "IMAGE",
+    "uploaded_by": 1,
+    "created_at": "2026-01-21T16:30:00Z"
+  }
+  ```
+
+## Codes d'erreur courants
+
+### 400 Bad Request
+- Format de requête invalide
+- Données manquantes ou incorrectes
+
+### 401 Unauthorized
+- Token JWT manquant ou invalide
+- Token expiré
+
+### 403 Forbidden
+- Permission refusée
+- L'utilisateur n'a pas les droits nécessaires
+
+### 404 Not Found
+- La ressource demandée n'existe pas
+
+### 500 Internal Server Error
+- Erreur serveur inattendue

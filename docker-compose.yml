@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────
+  # PostgreSQL — Création automatique de la DB
+  # ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: boost_db
+    restart: unless-stopped
+    environment:
+      # Ces variables créent automatiquement la DB et l'utilisateur au 1er démarrage
+      POSTGRES_DB: ${POSTGRES_DB:-boost_backend_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lelouch237}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"          # Exposé en local pour accès via DBeaver/pgAdmin
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-boost_backend_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────
+  # Application Django
+  # ─────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: boost_web
+    restart: unless-stopped
+    env_file:
+      - .env                 # Contient SECRET_KEY, CLOUDINARY_*, etc.
+    environment:
+      # Pointe vers le conteneur "db" — surcharge DATABASE_URL du .env si présent
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-lelouch237}@db:5432/${POSTGRES_DB:-boost_backend_db}
+      DEBUG: ${DEBUG:-True}
+      PORT: ${PORT:-8000}
+      # Cloudinary — passé depuis .env automatiquement via env_file
+      # CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    volumes:
+      - .:/app               # Hot-reload en développement
+      - staticfiles_vol:/app/staticfiles
+      - media_vol:/app/media # Stockage local media (fallback si Cloudinary non configuré)
+    depends_on:
+      db:
+        condition: service_healthy   # Attend que PostgreSQL soit vraiment prêt
+
+volumes:
+  postgres_data:             # Données PostgreSQL persistantes
+  staticfiles_vol:
+  media_vol:
