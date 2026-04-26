@@ -107,18 +107,23 @@ WSGI_APPLICATION = 'boost_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'boost_backend_db',
-        'USER': 'postgres',
-        'PASSWORD': 'lelouch237', # local
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('POSTGRES_DB', 'boost_backend_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'lelouch237'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
-# Injection automatique de la DB Neon via l'URL d'environnement
-db_from_env = dj_database_url.config(conn_max_age=600)
-if db_from_env:
-    DATABASES['default'].update(db_from_env)
+# Override via DATABASE_URL si définie (Neon, Render, etc.)
+_db_url = os.environ.get('DATABASE_URL')
+if _db_url:
+    try:
+        db_from_env = dj_database_url.config(conn_max_age=600)
+        if db_from_env:
+            DATABASES['default'].update(db_from_env)
+    except Exception:
+        pass  # garder la config par variables séparées
 
 # --- AUTHENTIFICATION ---
 AUTH_USER_MODEL = 'core.User'
