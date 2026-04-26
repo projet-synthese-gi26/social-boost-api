@@ -6,7 +6,7 @@ on:
       - "**"
 jobs:
   pipeline:
-    uses: projet-synthese-gi26/workflows/.github/workflows/django-ci-cd.yml@main
+    uses: projet-synthese-gi26/workflows/.github/workflows/django-ci-cd-v2.yml@main
     with:
       app_name: social-boost
     secrets: inherit
