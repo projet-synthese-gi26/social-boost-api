@@ -25,7 +25,15 @@ if RENDER_EXTERNAL_HOSTNAME:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "traefikdev.yowyob.com", "farcal-dev.yowyob.com",
 ]
+
+# Le préfixe de base path géré par Traefik
+FORCE_SCRIPT_NAME = '/social-boost'
+
+# Nécessaire pour que les redirects soient corrects
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL')
 if FRONTEND_URL:
@@ -39,6 +47,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "traefikdev.yowyob.com", "farcal-dev.yowyob.com",
 ]
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
@@ -75,7 +84,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Requis pour servir les CSS/JS sur Render
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,6 +92,17 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+STATIC_URL = '/fare-calculator/static/'
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Optionnel mais recommandé
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'boost_backend.urls'
 
