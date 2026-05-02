@@ -25,7 +25,7 @@ if RENDER_EXTERNAL_HOSTNAME:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "traefikdev.yowyob.com", "farcal-dev.yowyob.com",
+    "https://traefikdev.yowyob.com", "https://link-dev.yowyob.com",
 ]
 
 # Le préfixe de base path géré par Traefik
@@ -47,7 +47,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://traefikdev.yowyob.com", "https://farcal-dev.yowyob.com",
+    "https://traefikdev.yowyob.com", "https://link-dev.yowyob.com",
 ]
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
