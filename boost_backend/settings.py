@@ -198,7 +198,6 @@ DJOSER = {
 # --- STATICS & MEDIA (CLOUDINARY) ---
 
 # Fichiers Statiques (CSS, JS)
-STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 # Utilisation de WhiteNoise pour les statiques
 # Remplacez votre ligne STATICFILES_STORAGE par celle-ci :
