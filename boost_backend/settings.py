@@ -47,7 +47,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "traefikdev.yowyob.com", "farcal-dev.yowyob.com",
+    "https://traefikdev.yowyob.com", "https://farcal-dev.yowyob.com",
 ]
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
@@ -96,11 +96,6 @@ MIDDLEWARE = [
 STATIC_URL = '/social-boost/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-# Optionnel mais recommandé
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
