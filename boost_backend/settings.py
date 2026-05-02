@@ -93,7 +93,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-STATIC_URL = '/fare-calculator/static/'
+STATIC_URL = '/social-boost/static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
