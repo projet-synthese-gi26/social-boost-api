@@ -1,4 +1,5 @@
 import logging
+import uuid  # Ajouté pour MediaUploadView
 from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework import viewsets, status, filters, serializers
@@ -12,6 +13,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from .swagger_extensions import upload_schema 
 
 from .serializers import MyTokenObtainPairSerializer
 from .models import *
@@ -112,6 +114,11 @@ class FeedViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # --- PROTECTION SWAGGER ---
+        if getattr(self, "swagger_fake_view", False):
+            return Post.objects.none()
+        # --------------------------
+
         user = self.request.user
         now = timezone.now()
 
@@ -208,12 +215,6 @@ class FeedViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             w_boost = Value(0)
 
-        w_boost = Case(
-            *boost_whens,
-            default=Value(0),
-            output_field=IntegerField(),
-        )
-
         w_engagement = ExpressionWrapper(
             (F('num_likes') * 2) + (F('num_comments') * 5),
             output_field=IntegerField(),
@@ -285,6 +286,10 @@ class PageViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
+        # --- PROTECTION SWAGGER ---
+        if getattr(self, "swagger_fake_view", False):
+            return Page.objects.none()
+        # --------------------------
         queryset = super().get_queryset()
         if getattr(self, 'action', None) == 'list':
             return queryset.filter(owner=self.request.user)
@@ -318,6 +323,10 @@ class BoostViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # --- PROTECTION SWAGGER ---
+        if getattr(self, "swagger_fake_view", False):
+            return Boost.objects.none()
+        # --------------------------
         return Boost.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -402,10 +411,16 @@ class CommentViewSet(viewsets.ModelViewSet):
 class FriendshipViewSet(viewsets.ModelViewSet):
     serializer_class = FriendshipSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
+        # --- PROTECTION SWAGGER ---
+        if getattr(self, "swagger_fake_view", False):
+            return Friendship.objects.none()
+        # --------------------------
         return Friendship.objects.filter(
             Q(requester=self.request.user) | Q(addressee=self.request.user)
         )
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -436,16 +451,17 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         if addressee == requester:
             raise serializers.ValidationError("Vous ne pouvez pas vous ajouter en ami.")
         serializer.save(requester=requester, status=FriendStatus.PENDING)
+
     @action(detail=True, methods=['post'])
     def accept(self, request, pk=None):
         friendship = self.get_object()
         if friendship.addressee != request.user:
-
             return Response({'error': 'Ce n\'est pas votre demande.'}, status=403)
         
         friendship.status = FriendStatus.ACCEPTED
         friendship.save()
         return Response({'status': 'friendship accepted'})
+
     @action(detail=True, methods=['post'])
     def decline(self, request, pk=None):
         friendship = self.get_object()
@@ -455,51 +471,42 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         friendship.status = FriendStatus.DECLINED
         friendship.save()
         return Response({'status': 'friendship declined'})
-    # --- NOUVELLE ACTION AJOUTÉE ---
+
     @action(detail=False, methods=['get'])
     def suggestions(self, request):
         user = request.user
-        # 1. Récupérer les IDs des utilisateurs déjà liés
         connected_user_ids = Friendship.objects.filter(
             Q(requester=user) | Q(addressee=user)
         ).values_list('requester_id', 'addressee_id')
-        # Aplatir la liste et exclure l'utilisateur actuel
         excluded_ids = {uid for pair in connected_user_ids for uid in pair}
         excluded_ids.add(user.id)
-        # 2. Obtenir jusqu'à 10 utilisateurs qui ne sont pas dans la liste d'exclusion
         suggested_users = User.objects.exclude(id__in=excluded_ids).order_by('?')[:10]
-        # 3. Sérialiser et renvoyer les données
         serializer = UserSerializer(suggested_users, many=True)
         return Response(serializer.data)
 
 class MediaUploadView(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
+    # Les parsers sont obligatoires pour que Django accepte les fichiers
     parser_classes = (MultiPartParser, FormParser)
+    permission_classes = [IsAuthenticated]
 
+    @upload_schema # On applique le décorateur ici
     def create(self, request):
-        file_obj = request.FILES.get('file')
+        file_obj = request.FILES.get('file') # Récupère le fichier importé
+        
         if not file_obj:
             return Response({'error': 'Aucun fichier fourni'}, status=400)
         
-        # 1. Extraire l'extension et préparer un nom unique
+        # Logique de sauvegarde existante
         ext = file_obj.name.split('.')[-1].lower()
-        # On définit le nom du fichier (Cloudinary créera les dossiers automatiquement)
         filename = f"uploads/{request.user.id}/{uuid.uuid4()}.{ext}"
         
-        # 2. Sauvegarder le fichier
-        # Si DEFAULT_FILE_STORAGE est configuré sur Cloudinary, 
-        # cette ligne envoie le fichier directement sur leurs serveurs.
         path = default_storage.save(filename, ContentFile(file_obj.read()))
-        
-        # 3. RÉCUPÉRATION DE L'URL (LA CORRECTION EST ICI)
-        # default_storage.url(path) détecte automatiquement si l'image est sur Cloudinary 
-        # et renvoie l'URL complète commençant par https://res.cloudinary.com/...
         url = default_storage.url(path)
         
         return Response({
             'url': url, 
             'type': 'IMAGE' if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp'] else 'VIDEO'
-        })
+        }, status=status.HTTP_201_CREATED)
         
 class GlobalSearchView(APIView):
     permission_classes = [IsAuthenticated]
@@ -510,23 +517,20 @@ class GlobalSearchView(APIView):
         if not query:
             return Response({'users': [], 'pages': []}, status=200)
 
-        # 1. Recherche des utilisateurs (Prénom ou Nom)
         users = User.objects.filter(
             Q(first_name__icontains=query) | 
             Q(last_name__icontains=query) |
-            Q(email__icontains=query) # Optionnel: recherche par email aussi
-        ).distinct()[:10] # On limite à 10 résultats pour la performance
+            Q(email__icontains=query)
+        ).distinct()[:10]
 
-        # 2. Recherche des pages (Nom)
         pages = Page.objects.filter(
             name__icontains=query
         ).distinct()[:10]
 
-        # 3. Sérialisation
         user_serializer = UserSerializer(users, many=True)
         page_serializer = PageSerializer(pages, many=True)
 
         return Response({
             'users': user_serializer.data,
             'pages': page_serializer.data
-        }, status=status.HTTP_200_OK)        
+        }, status=status.HTTP_200_OK)

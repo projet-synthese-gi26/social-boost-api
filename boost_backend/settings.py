@@ -29,7 +29,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Le préfixe de base path géré par Traefik
-FORCE_SCRIPT_NAME = '/social-boost'
+
+FORCE_SCRIPT_NAME = os.environ.get("FORCE_SCRIPT_NAME", "")
 
 # Nécessaire pour que les redirects soient corrects
 USE_X_FORWARDED_HOST = True
@@ -70,12 +71,13 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # Pour WhiteNoise
+    'whitenoise.runserver_nostatic',  # Pour WhiteNoise
     'django.contrib.staticfiles',
-    'cloudinary',           # Requis pour Cloudinary
+    'cloudinary',                     # Requis pour Cloudinary
     'rest_framework',
     'rest_framework_simplejwt',
     'djoser',
+    'drf_spectacular',                # Documentation OpenAPI / Swagger
     'core.apps.CoreConfig',
     'django_filters',
     'corsheaders',
@@ -92,12 +94,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
-STATIC_URL = '/social-boost/static/'
-
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'boost_backend.urls'
 
@@ -118,12 +114,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'boost_backend.wsgi.application'
 
-# --- BASE DE DONNÉES (NEON.TECH) ---
+# --- BASE DE DONNÉES ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'boost_backend_db'),
-        'USER': os.environ.get('POSTGRES_USER', 'postgres'),
+        'NAME': os.environ.get('POSTGRES_DB', 'boost_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'lelouch'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'lelouch237'),
         'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
@@ -158,8 +154,56 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# --- drf-spectacular — Swagger / OpenAPI ---
+import os
+
+API_BASE_URL = os.environ.get(
+    "API_BASE_URL",
+    "http://localhost:8000"
+)
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Boost Social Network API',
+    'DESCRIPTION': (
+        '## Bienvenue sur la documentation de l\'API Boost Social Network\n\n'
+        '### 🔐 Authentification\n'
+        'Utilisez `/api/token/` pour obtenir un JWT.\n'
+    ),
+    'VERSION': '1.0.0',
+
+    # ✅ FIX IMPORTANT : plus de /social-boost injecté automatiquement
+    'SERVERS': [
+        {
+            'url': API_BASE_URL,
+            'description': 'Environnement actif (dev / prod)',
+        }
+    ],
+
+    'SERVE_INCLUDE_SCHEMA': False,
+
+    'SECURITY': [{'BearerAuth': []}],
+    'SECURITY_DEFINITIONS': {
+        'BearerAuth': {
+            'type': 'http',
+            'scheme': 'bearer',
+            'bearerFormat': 'JWT',
+        }
+    },
+
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayRequestDuration': True,
+        'docExpansion': 'none',
+        'filter': True,
+        'tryItOutEnabled': True,
+    },
+
+    'COMPONENT_SPLIT_REQUEST': True,
+}
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -195,25 +239,32 @@ DJOSER = {
     }
 }
 
-# --- STATICS & MEDIA (CLOUDINARY) ---
-
-# Fichiers Statiques (CSS, JS)
+# --- STATICS & MEDIA ---
+STATIC_URL = '/social-boost/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-# Utilisation de WhiteNoise pour les statiques
-# Remplacez votre ligne STATICFILES_STORAGE par celle-ci :
-STATICFILES_STORAGE = "whitenoise.storage.StaticFilesStorage"
-# Configuration Cloudinary pour les Médias (Photos)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Configuration Cloudinary
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-# Force l'utilisation de Cloudinary pour tous les fichiers uploadés
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# Django 4.2+ : STORAGES remplace DEFAULT_FILE_STORAGE + STATICFILES_STORAGE
+# Ne pas définir DEFAULT_FILE_STORAGE ni STATICFILES_STORAGE séparément
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
+    },
+}
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_USE_FINDERS = True
 
 # --- DIVERS ---
 AUTH_PASSWORD_VALIDATORS = [
@@ -240,14 +291,3 @@ LOGGING = {
         'level': 'INFO',
     },
 }
-
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.StaticFilesStorage",
-    },
-}
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_USE_FINDERS = True
