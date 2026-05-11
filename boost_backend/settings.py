@@ -25,8 +25,7 @@ if RENDER_EXTERNAL_HOSTNAME:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://link-dev.yowyob.com"
-
+    "https://link-dev.yowyob.com",
 ]
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL')
@@ -41,6 +40,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://link-dev.yowyob.com",
 ]
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
@@ -110,7 +110,7 @@ WSGI_APPLICATION = 'boost_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'boost_db',
+        'NAME': 'boost_backend_db',
         'USER': 'lelouch',
         'PASSWORD': 'lelouch237', # local
         'HOST': 'localhost',
