@@ -28,7 +28,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://link-dev.yowyob.com",
 ]
 
-FRONTEND_URL = os.environ.get('FRONTEND_URL')
+FRONTEND_URL = "https://link-dev.yowyob.com"
 if FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
 
