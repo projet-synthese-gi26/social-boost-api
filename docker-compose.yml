@@ -34,7 +34,7 @@ services:
     container_name: boost_web
     restart: unless-stopped
     env_file:
-      - .env                 # Contient SECRET_KEY, CLOUDINARY_*, etc.
+      - .env.example                 # Contient SECRET_KEY, CLOUDINARY_*, etc.
     environment:
       # Pointe vers le conteneur "db" — surcharge DATABASE_URL du .env si présent
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-lelouch237}@db:5432/${POSTGRES_DB:-boost_backend_db}

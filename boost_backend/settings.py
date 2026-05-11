@@ -25,16 +25,7 @@ if RENDER_EXTERNAL_HOSTNAME:
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://traefikdev.yowyob.com", "https://link-dev.yowyob.com",
 ]
-
-# Le préfixe de base path géré par Traefik
-
-FORCE_SCRIPT_NAME = os.environ.get("FORCE_SCRIPT_NAME", "")
-
-# Nécessaire pour que les redirects soient corrects
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 FRONTEND_URL = os.environ.get('FRONTEND_URL')
 if FRONTEND_URL:
@@ -48,7 +39,6 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://traefikdev.yowyob.com", "https://link-dev.yowyob.com",
 ]
 if FRONTEND_URL:
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL.rstrip("/"))
@@ -65,28 +55,28 @@ CORS_ALLOW_HEADERS = [
 
 # --- APPLICATION DEFINITION ---
 INSTALLED_APPS = [
-    'cloudinary_storage',  # DOIT ÊTRE EN PREMIER (avant staticfiles)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic',  # Pour WhiteNoise
+    'whitenoise.runserver_nostatic',  # Pour WhiteNoise (doit être avant staticfiles)
     'django.contrib.staticfiles',
-    'cloudinary',                     # Requis pour Cloudinary
+    'cloudinary',           # Requis pour Cloudinary
+    'cloudinary_storage',   # Après staticfiles : WhiteNoise gère les statiques
     'rest_framework',
     'rest_framework_simplejwt',
     'djoser',
-    'drf_spectacular',                # Documentation OpenAPI / Swagger
     'core.apps.CoreConfig',
     'django_filters',
     'corsheaders',
+    'drf_spectacular',      # Documentation API Swagger/ReDoc
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Requis pour servir les CSS/JS sur Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -114,27 +104,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'boost_backend.wsgi.application'
 
-# --- BASE DE DONNÉES ---
+# --- BASE DE DONNÉES (NEON.TECH) ---
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'boost_db'),
-        'USER': os.environ.get('POSTGRES_USER', 'lelouch'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'lelouch237'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        'NAME': 'boost_db',
+        'USER': 'lelouch',
+        'PASSWORD': 'lelouch237', # local
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
-# Override via DATABASE_URL si définie (Neon, Render, etc.)
-_db_url = os.environ.get('DATABASE_URL')
-if _db_url:
-    try:
-        db_from_env = dj_database_url.config(conn_max_age=600)
-        if db_from_env:
-            DATABASES['default'].update(db_from_env)
-    except Exception:
-        pass  # garder la config par variables séparées
+# Injection automatique de la DB Neon via l'URL d'environnement
+db_from_env = dj_database_url.config(conn_max_age=600)
+if db_from_env:
+    DATABASES['default'].update(db_from_env)
 
 # --- AUTHENTIFICATION ---
 AUTH_USER_MODEL = 'core.User'
@@ -157,53 +142,14 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# --- drf-spectacular — Swagger / OpenAPI ---
-import os
-
-API_BASE_URL = os.environ.get(
-    "API_BASE_URL",
-    "http://localhost:8000"
-)
-
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Boost Social Network API',
-    'DESCRIPTION': (
-        '## Bienvenue sur la documentation de l\'API Boost Social Network\n\n'
-        '### 🔐 Authentification\n'
-        'Utilisez `/api/token/` pour obtenir un JWT.\n'
-    ),
+    'TITLE': 'Social Boost API',
+    'DESCRIPTION': 'API backend pour la plateforme Social Boost',
     'VERSION': '1.0.0',
-
-    # ✅ FIX IMPORTANT : plus de /social-boost injecté automatiquement
-    'SERVERS': [
-        {
-            'url': API_BASE_URL,
-            'description': 'Environnement actif (dev / prod)',
-        }
-    ],
-
     'SERVE_INCLUDE_SCHEMA': False,
-
-    'SECURITY': [{'BearerAuth': []}],
-    'SECURITY_DEFINITIONS': {
-        'BearerAuth': {
-            'type': 'http',
-            'scheme': 'bearer',
-            'bearerFormat': 'JWT',
-        }
-    },
-
-    'SWAGGER_UI_SETTINGS': {
-        'deepLinking': True,
-        'persistAuthorization': True,
-        'displayRequestDuration': True,
-        'docExpansion': 'none',
-        'filter': True,
-        'tryItOutEnabled': True,
-    },
-
     'COMPONENT_SPLIT_REQUEST': True,
 }
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -239,32 +185,21 @@ DJOSER = {
     }
 }
 
-# --- STATICS & MEDIA ---
-STATIC_URL = '/social-boost/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# --- STATICS & MEDIA (CLOUDINARY) ---
 
-# Configuration Cloudinary
+# Fichiers Statiques (CSS, JS)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Configuration Cloudinary pour les Médias (Photos)
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-# Django 4.2+ : STORAGES remplace DEFAULT_FILE_STORAGE + STATICFILES_STORAGE
-# Ne pas définir DEFAULT_FILE_STORAGE ni STATICFILES_STORAGE séparément
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.StaticFilesStorage",
-    },
-}
-
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_USE_FINDERS = True
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # --- DIVERS ---
 AUTH_PASSWORD_VALIDATORS = [
@@ -291,3 +226,14 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
+    },
+}
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_USE_FINDERS = True
