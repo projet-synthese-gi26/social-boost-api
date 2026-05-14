@@ -32,6 +32,9 @@ RUN mkdir -p /app/media /app/staticfiles
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+HEALTHCHECK --interval=10s --timeout=5s --start-period=40s --retries=5 \
+  CMD curl -f http://localhost:8000/api/health/ || exit 1
+
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
