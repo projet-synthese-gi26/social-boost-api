@@ -126,7 +126,7 @@ if database_url:
         DATABASES['default'].update(db_from_env)
     except ValueError:
         pass  # Garde la config manuelle ci-dessus
-            
+
 # --- AUTHENTIFICATION ---
 AUTH_USER_MODEL = 'core.User'
 
@@ -154,6 +154,9 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+    'SERVERS': [
+        {'url': '/social-boost', 'description': 'Production'},
+    ],
 }
 
 SIMPLE_JWT = {
@@ -191,11 +194,16 @@ DJOSER = {
     }
 }
 
+# Basepath / sous-répertoire de déploiement
+FORCE_SCRIPT_NAME = '/social-boost'
+
 # --- STATICS & MEDIA (CLOUDINARY) ---
 
 # Fichiers Statiques (CSS, JS)
-STATIC_URL = '/static/'
+STATIC_URL = '/social-boost/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+WHITENOISE_STATIC_PREFIX = '/social-boost/static/'
 
 # Configuration Cloudinary pour les Médias (Photos)
 CLOUDINARY_STORAGE = {
@@ -204,7 +212,7 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-MEDIA_URL = '/media/'
+MEDIA_URL = '/social-boost/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # --- DIVERS ---
