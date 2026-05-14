@@ -16,14 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings               # <--- Import nécessaire
-from django.conf.urls.static import static     # <--- Import nécessaire
+from django.conf import settings
+from django.conf.urls.static import static
+from django.http import JsonResponse                          # ← ajout
 from rest_framework_simplejwt.views import TokenRefreshView
 from core.views import MyTokenObtainPairView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+
+def health_check(request):                                   # ← ajout
+    return JsonResponse({"status": "ok"}, status=200)        # ← ajout
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/health/', health_check),                       # ← ajout
     path('api/auth/', include('djoser.urls')),
     path('api/auth/', include('djoser.urls.jwt')),
     path('api/', include('core.urls')),
@@ -35,7 +42,6 @@ urlpatterns = [
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
-
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
