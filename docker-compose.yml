@@ -5,24 +5,24 @@ services:
   # ─────────────────────────────────────────
   # PostgreSQL — Création automatique de la DB
   # ─────────────────────────────────────────
-  db:
+  postgres:
     image: postgres:16-alpine
     container_name: boost_db
     restart: unless-stopped
     environment:
-      # Ces variables créent automatiquement la DB et l'utilisateur au 1er démarrage
-      POSTGRES_DB: ${POSTGRES_DB:-boost_backend_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lelouch237}
+      POSTGRES_DB: link
+      POSTGRES_USER: lelouch
+      POSTGRES_PASSWORD: Yowyob2026
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"          # Exposé en local pour accès via DBeaver/pgAdmin
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-boost_backend_db}"]
+      test: ["CMD-SHELL", "pg_isready -U lelouch -d link"]
       interval: 5s
       timeout: 5s
       retries: 10
+
 
   # ─────────────────────────────────────────
   # Application Django
@@ -36,8 +36,8 @@ services:
     env_file:
       - .env.example                 # Contient SECRET_KEY, CLOUDINARY_*, etc.
     environment:
-      # Pointe vers le conteneur "db" — surcharge DATABASE_URL du .env si présent
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-lelouch237}@db:5432/${POSTGRES_DB:-boost_backend_db}
+      # Pointe vers le conteneur "postgres" — surcharge DATABASE_URL du .env si présent
+      DATABASE_URL: postgres://lelouch:Yowyob2026@postgres:5432/link
       DEBUG: ${DEBUG:-True}
       PORT: ${PORT:-8000}
       # Cloudinary — passé depuis .env automatiquement via env_file
@@ -49,8 +49,8 @@ services:
       - staticfiles_vol:/app/staticfiles
       - media_vol:/app/media # Stockage local media (fallback si Cloudinary non configuré)
     depends_on:
-      db:
-        condition: service_healthy   # Attend que PostgreSQL soit vraiment prêt
+      postgres:
+        condition: service_healthy  # Attend que PostgreSQL soit vraiment prêt
 
 volumes:
   postgres_data:             # Données PostgreSQL persistantes
