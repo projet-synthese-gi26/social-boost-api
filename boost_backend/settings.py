@@ -110,19 +110,23 @@ WSGI_APPLICATION = 'boost_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'boost_backend_db',
-        'USER': 'lelouch',
-        'PASSWORD': 'lelouch237',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('POSTGRES_DB', 'boost_backend_db'),
+        'USER': os.environ.get('POSTGRES_USER', 'lelouch'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'lelouch237'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
+# Utilise DATABASE_URL seulement si présent ET sans caractères spéciaux problématiques
 database_url = os.environ.get('DATABASE_URL')
 if database_url:
-    db_from_env = dj_database_url.config(default=database_url, conn_max_age=600)
-    DATABASES['default'].update(db_from_env)
-    
+    try:
+        db_from_env = dj_database_url.config(default=database_url, conn_max_age=600)
+        DATABASES['default'].update(db_from_env)
+    except ValueError:
+        pass  # Garde la config manuelle ci-dessus
+            
 # --- AUTHENTIFICATION ---
 AUTH_USER_MODEL = 'core.User'
 
